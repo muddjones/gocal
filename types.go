@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apognu/gocal/parser"
+	"github.com/muddjones/gocal/parser"
 )
 
 type Gocal struct {
@@ -19,6 +19,7 @@ type Gocal struct {
 const (
 	ContextRoot = iota
 	ContextEvent
+	ContextTimezone
 	ContextUnknown
 )
 

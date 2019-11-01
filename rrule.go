@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/apognu/gocal/parser"
+	"github.com/muddjones/gocal/parser"
 )
 
 const YmdHis = "2006-01-02 15:04:05"
@@ -80,27 +80,28 @@ func (gc *Gocal) ExpandRecurringEvent(buf *Event) []Event {
 		if !hasByMonth || strings.Contains(fmt.Sprintf("%d", byMonth), weekDaysStart.Format("1")) {
 			if hasByDay {
 				for i := 0; i < 7; i++ {
-					excluded := false
-					for _, ex := range buf.ExcludeDates {
-						if ex.Equal(*weekDaysStart) {
-							excluded = true
-							break
+					day := parseDayNameToIcsName(weekDaysStart.Format("Mon"))
+
+					if strings.Contains(byDay, day) {
+						if currentCount != 0 {
+							recurrWeekDaysStart := weekDaysStart.AddDate(0, 0, (dayRecurrence-1)*7)
+							recurrWeekDaysEnd := weekDaysEnd.AddDate(0, 0, (dayRecurrence-1)*7)
+							weekDaysStart = &recurrWeekDaysStart
+							weekDaysEnd = &recurrWeekDaysEnd
 						}
-					}
 
-					if !excluded {
-						day := parseDayNameToIcsName(weekDaysStart.Format("Mon"))
-
-						if strings.Contains(byDay, day) {
-							if currentCount != 0 {
-								recurrWeekDaysStart := weekDaysStart.AddDate(0, 0, (dayRecurrence-1)*7)
-								recurrWeekDaysEnd := weekDaysEnd.AddDate(0, 0, (dayRecurrence-1)*7)
-								weekDaysStart = &recurrWeekDaysStart
-								weekDaysEnd = &recurrWeekDaysEnd
+						excluded := false
+						for _, ex := range buf.ExcludeDates {
+							if ex.Equal(*weekDaysStart) {
+								excluded = true
+								break
 							}
-							currentCount++
-							count--
+						}
 
+						currentCount++
+						count--
+
+						if !excluded {
 							e := *buf
 							e.Start = weekDaysStart
 							e.End = weekDaysEnd

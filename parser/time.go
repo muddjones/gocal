@@ -11,7 +11,8 @@ const (
 )
 
 var (
-	TZMapper func(s string) (*time.Location, error)
+	TZMapper  func(s string) (*time.Location, error)
+	VTimezone *time.Location
 )
 
 func ParseTime(s string, params map[string]string, ty int) (*time.Time, error) {
@@ -21,10 +22,18 @@ func ParseTime(s string, params map[string]string, ty int) (*time.Time, error) {
 
 	if params["VALUE"] == "DATE" || len(s) == 8 {
 		t, err := time.Parse("20060102", s)
-		if ty == TimeStart {
-			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-		} else if ty == TimeEnd {
-			t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC).Add(-1 * time.Second)
+		if VTimezone != nil {
+			if ty == TimeStart {
+				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, VTimezone)
+			} else if ty == TimeEnd {
+				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, VTimezone).Add(-1 * time.Second)
+			}
+		} else {
+			if ty == TimeStart {
+				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+			} else if ty == TimeEnd {
+				t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC).Add(-1 * time.Second)
+			}
 		}
 
 		return &t, err
@@ -45,7 +54,7 @@ func ParseTime(s string, params map[string]string, ty int) (*time.Time, error) {
 		if TZMapper == nil || err != nil {
 			tz, err = LoadTimezone(params["TZID"])
 		}
-		
+
 		if err != nil {
 			tz, _ = time.LoadLocation("UTC")
 		}

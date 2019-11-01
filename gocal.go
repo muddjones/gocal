@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/apognu/gocal/parser"
+	"github.com/muddjones/gocal/parser"
 )
 
 func NewParser(r io.Reader) *Gocal {
@@ -45,7 +45,19 @@ func (gc *Gocal) Parse() error {
 			continue
 		}
 
-		if ctx.Value == ContextRoot && l.Is("BEGIN", "VEVENT") {
+		if ctx.Value == ContextRoot && l.Is("BEGIN", "VTIMEZONE") {
+			ctx = ctx.Nest(ContextTimezone)
+		} else if ctx.Value == ContextTimezone && l.IsKey("TZID") {
+			parser.VTimezone, err = parser.LoadTimezone(l.Value)
+			if err != nil {
+				return fmt.Errorf("could not parse VTIMEZONE")
+			}
+		} else if ctx.Value == ContextTimezone && l.Is("END", "VTIMEZONE") {
+			if ctx.Previous == nil {
+				return fmt.Errorf("got an END:* without matching BEGIN:*")
+			}
+			ctx = ctx.Previous
+		} else if ctx.Value == ContextRoot && l.Is("BEGIN", "VEVENT") {
 			ctx = ctx.Nest(ContextEvent)
 
 			gc.buffer = &Event{}
@@ -208,7 +220,7 @@ func (gc *Gocal) parseEvent(l *Line) error {
 
 		gc.buffer.RecurrenceID = l.Value
 	case "EXDATE":
-		d, err := parser.ParseTime(l.Value, map[string]string{}, parser.TimeStart)
+		d, err := parser.ParseTime(l.Value, l.Params, parser.TimeStart)
 		if err == nil {
 			gc.buffer.ExcludeDates = append(gc.buffer.ExcludeDates, *d)
 		}
