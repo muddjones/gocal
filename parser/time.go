@@ -75,6 +75,13 @@ func LoadTimezone(tzid string) (*time.Location, error) {
 		return tz, err
 	}
 
+	if TZMapper != nil {
+		tz, err = TZMapper(tzid)
+	}
+	if err == nil {
+		return tz, err
+	}
+
 	tokens := strings.Split(tzid, "_")
 	for idx, t := range tokens {
 		t = strings.ToLower(t)
